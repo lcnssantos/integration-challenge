@@ -21,7 +21,7 @@ type TaskInput struct {
 	Tag  string
 }
 
-func ExecuteConcurrentTasks(tasks ...TaskInput) TaskResultMap {
+func ExecuteConcurrentTasks(tasks []TaskInput) TaskResultMap {
 	taskResult := make(TaskResultMap, 0)
 	asyncTaskChannel := make(chan TaskResult)
 

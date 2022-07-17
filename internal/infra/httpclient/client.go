@@ -23,7 +23,9 @@ func NewHttpClient() HttpClient {
 }
 
 func (h *HttpClient) Post(ctx context.Context, url string, body interface{}, output interface{}) error {
-	bodyEncoded, err := json.Marshal(body)
+	bodyEncoded, err := json.Marshal(&body)
+
+	log.Print(string(bodyEncoded))
 
 	if err != nil {
 		log.Error().Err(err).Msg("failed to encode body")
@@ -31,6 +33,8 @@ func (h *HttpClient) Post(ctx context.Context, url string, body interface{}, out
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(bodyEncoded))
+
+	req.Header.Set("Content-Type", "application/json")
 
 	if err != nil {
 		log.Error().Err(err).Msg("failed to create request")
@@ -57,7 +61,7 @@ func (h *HttpClient) Post(ctx context.Context, url string, body interface{}, out
 
 	defer res.Body.Close()
 
-	if res.StatusCode != http.StatusOK {
+	if res.StatusCode > 299 {
 		return errors.New(fmt.Sprintf("failed to post to %s, status code %d", url, res.StatusCode))
 	}
 
@@ -99,7 +103,7 @@ func (h *HttpClient) Get(ctx context.Context, url string, output interface{}) er
 
 	defer res.Body.Close()
 
-	if res.StatusCode != http.StatusOK {
+	if res.StatusCode > 299 {
 		return errors.New(fmt.Sprintf("http status code: %d | URL: %s", res.StatusCode, url))
 	}
 

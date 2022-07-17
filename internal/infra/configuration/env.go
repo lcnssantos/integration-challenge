@@ -12,6 +12,7 @@ type Env struct {
 	ServiceABaseUrl string `validate:"required"`
 	ServiceBBaseUrl string `validate:"required"`
 	ServiceCBaseUrl string `validate:"required"`
+	MyBaseUrl       string `validate:"required"`
 }
 
 func (e *Env) Validate() error {
@@ -24,5 +25,6 @@ func LoadEnv() {
 		ServiceABaseUrl: os.Getenv("SERVICE_A_BASE_URL"),
 		ServiceBBaseUrl: os.Getenv("SERVICE_B_BASE_URL"),
 		ServiceCBaseUrl: os.Getenv("SERVICE_C_BASE_URL"),
+		MyBaseUrl:       os.Getenv("MY_BASE_URL"),
 	}
 }

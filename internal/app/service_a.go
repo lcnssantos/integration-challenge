@@ -36,6 +36,10 @@ func NewServiceAImpl(httpClient httpclient.HttpClient, baseUrl string) *ServiceA
 	}
 }
 
+func (s *ServiceAImpl) GetTag() string {
+	return "service-a"
+}
+
 func (s *ServiceAImpl) Query(ctx context.Context, currency domain.Currency) (*domain.Price, error) {
 	url := fmt.Sprintf("%s/cotacao?moeda=%s", s.baseUrl, currency)
 

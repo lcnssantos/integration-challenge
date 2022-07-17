@@ -38,6 +38,10 @@ func NewServiceBImpl(httpClient httpclient.HttpClient, baseUrl string) *ServiceB
 	}
 }
 
+func (s *ServiceBImpl) GetTag() string {
+	return "service-b"
+}
+
 func (s *ServiceBImpl) Query(ctx context.Context, currency domain.Currency) (*domain.Price, error) {
 	url := fmt.Sprintf("%s/cotacao?curr=%s", s.baseUrl, currency)
 

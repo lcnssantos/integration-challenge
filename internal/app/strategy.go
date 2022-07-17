@@ -8,4 +8,5 @@ import (
 
 type Strategy interface {
 	Query(ctx context.Context, currency domain.Currency) (*domain.Price, error)
+	GetTag() string
 }

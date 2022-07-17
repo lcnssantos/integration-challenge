@@ -9,47 +9,58 @@ import (
 )
 
 type Controller struct {
-	serviceA app.Strategy
-	serviceB app.Strategy
+	strategies []app.Strategy
+	pubSub     *concurrency.PubSub[app.WebhookResponse]
 }
 
-func NewController(serviceA app.Strategy, serviceB app.Strategy) Controller {
+func NewController(strategies []app.Strategy, pubSub *concurrency.PubSub[app.WebhookResponse]) Controller {
 	return Controller{
-		serviceA: serviceA,
-		serviceB: serviceB,
+		strategies: strategies,
+		pubSub:     pubSub,
 	}
 }
 
-func (c Controller) Query(ctx *gin.Context) {
+func (c *Controller) Subscribe(ctx *gin.Context) {
+	var webhookResponse app.WebhookResponse
+	if err := ctx.BindJSON(&webhookResponse); err != nil {
+		log.Error().Err(err).Msg("error binding json")
+		ctx.JSON(400, gin.H{
+			"error": "error binding json",
+		})
+		return
+	}
+
+	c.pubSub.Publish(webhookResponse.CorrelationID, webhookResponse)
+	ctx.JSON(200, gin.H{
+		"message": "ok",
+	})
+}
+
+func (c *Controller) Query(ctx *gin.Context) {
 	currency := domain.Currency(ctx.Param("currency"))
 
 	prices := []domain.Price{}
 
-	tasks := concurrency.ExecuteConcurrentTasks(concurrency.TaskInput{
-		Task: func() (interface{}, error) {
-			return c.serviceA.Query(ctx, currency)
-		},
-		Tag: "query-service-a",
-	}, concurrency.TaskInput{
-		Task: func() (interface{}, error) {
-			return c.serviceB.Query(ctx, currency)
-		},
-		Tag: "query-service-b",
-	})
+	tasksInputs := []concurrency.TaskInput{}
 
-	priceATask := tasks[0]
-	priceBTask := tasks[1]
-
-	if priceATask.Err == nil {
-		prices = append(prices, *priceATask.Result.(*domain.Price))
-	} else {
-		log.Error().Err(priceATask.Err).Msg("error querying service A")
+	for _, strategy := range c.strategies {
+		tasksInputs = append(tasksInputs, concurrency.TaskInput{
+			Task: func() (interface{}, error) {
+				return strategy.Query(ctx, currency)
+			},
+			Tag: strategy.GetTag(),
+		})
 	}
 
-	if priceBTask.Err == nil {
-		prices = append(prices, *priceBTask.Result.(*domain.Price))
-	} else {
-		log.Error().Err(priceBTask.Err).Msg("error querying service B")
+	tasks := concurrency.ExecuteConcurrentTasks(tasksInputs)
+
+	for _, task := range tasks {
+		if task.Err != nil {
+			log.Error().Err(task.Err).Msg("error executing task")
+			continue
+		}
+
+		prices = append(prices, *task.Result.(*domain.Price))
 	}
 
 	if len(prices) == 0 {

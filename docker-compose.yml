@@ -11,6 +11,7 @@ services:
       - SERVICE_A_BASE_URL=http://integration:5000
       - SERVICE_B_BASE_URL=http://integration:5000
       - SERVICE_C_BASE_URL=http://integration:5000
+      - MY_BASE_URL=http://api:8080
   integration:
     container_name: challenge-integration
     image: zanfranceschi/desafio-01-cotacoes
