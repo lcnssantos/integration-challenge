@@ -61,7 +61,7 @@ func (s *ServiceCImpl) Query(ctx context.Context, currency domain.Currency) (*do
 	var msg WebhookResponse
 
 	if s.cache.data != nil && s.cache.expiration.After(time.Now()) {
-		log.Debug().Str("service", "service-b").Msg("using cached response")
+		log.Debug().Str("service", "service-c").Msg("using cached response")
 		msg = *s.cache.data
 	} else {
 
