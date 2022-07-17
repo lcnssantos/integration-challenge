@@ -25,8 +25,6 @@ func NewHttpClient() HttpClient {
 func (h *HttpClient) Post(ctx context.Context, url string, body interface{}, output interface{}) error {
 	bodyEncoded, err := json.Marshal(&body)
 
-	log.Print(string(bodyEncoded))
-
 	if err != nil {
 		log.Error().Err(err).Msg("failed to encode body")
 		return err

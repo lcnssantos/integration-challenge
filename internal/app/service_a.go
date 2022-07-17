@@ -29,7 +29,7 @@ type ServiceAResponse struct {
 	Symbol  string          `json:"symbol"`
 }
 
-func NewServiceAImpl(httpClient httpclient.HttpClient, baseUrl string) *ServiceAImpl {
+func NewServiceAImpl(httpClient httpclient.HttpClient, baseUrl string) Strategy {
 	return &ServiceAImpl{
 		httpClient: httpClient,
 		baseUrl:    baseUrl,

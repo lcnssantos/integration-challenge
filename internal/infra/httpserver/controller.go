@@ -41,15 +41,18 @@ func (c *Controller) Query(ctx *gin.Context) {
 
 	prices := []domain.Price{}
 
-	tasksInputs := []concurrency.TaskInput{}
+	tasksInputs := make([]concurrency.TaskInput, len(c.strategies))
 
-	for _, strategy := range c.strategies {
-		tasksInputs = append(tasksInputs, concurrency.TaskInput{
+	for i := 0; i < len(c.strategies); i++ {
+		strategy := c.strategies[i]
+
+		tasksInputs[i] = concurrency.TaskInput{
 			Task: func() (interface{}, error) {
 				return strategy.Query(ctx, currency)
 			},
 			Tag: strategy.GetTag(),
-		})
+		}
+
 	}
 
 	tasks := concurrency.ExecuteConcurrentTasks(tasksInputs)

@@ -42,7 +42,7 @@ type ServiceCRequest struct {
 	Callback string          `json:"callback"`
 }
 
-func NewServiceCImpl(httpClient httpclient.HttpClient, baseUrl string, myBaseUrl string, pubSub *concurrency.PubSub[WebhookResponse]) *ServiceCImpl {
+func NewServiceCImpl(httpClient httpclient.HttpClient, baseUrl string, myBaseUrl string, pubSub *concurrency.PubSub[WebhookResponse]) Strategy {
 	return &ServiceCImpl{
 		httpClient: httpClient,
 		baseUrl:    baseUrl,
@@ -65,7 +65,7 @@ func (s *ServiceCImpl) Query(ctx context.Context, currency domain.Currency) (*do
 		msg = *s.cache.data
 	} else {
 
-		log.Debug().Str("service", "service-b").Msg("querying service")
+		log.Debug().Str("service", "service-c").Msg("querying service")
 
 		var response ServiceCResponse
 

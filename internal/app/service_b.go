@@ -31,7 +31,7 @@ type ServiceBResponse struct {
 	} `json:"cotacao"`
 }
 
-func NewServiceBImpl(httpClient httpclient.HttpClient, baseUrl string) *ServiceBImpl {
+func NewServiceBImpl(httpClient httpclient.HttpClient, baseUrl string) Strategy {
 	return &ServiceBImpl{
 		httpClient: httpClient,
 		baseUrl:    baseUrl,

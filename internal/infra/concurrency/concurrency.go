@@ -32,6 +32,7 @@ func ExecuteConcurrentTasks(tasks []TaskInput) TaskResultMap {
 
 	for index, task := range tasks {
 		go func(index int, task TaskInput, channel chan TaskResult) {
+
 			startTime := time.Now()
 			result, err := task.Task()
 

@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	zerolog.SetGlobalLevel(zerolog.TraceLevel)
 
 	configuration.LoadEnv()
 
