@@ -3,14 +3,24 @@ package app
 import (
 	"context"
 	"fmt"
+	"sync"
+	"time"
 
 	"github.com/lcnssantos/integration-challenge/internal/domain"
 	"github.com/lcnssantos/integration-challenge/internal/infra/httpclient"
+	"github.com/rs/zerolog/log"
 )
+
+type serviceACache struct {
+	sync.Mutex
+	data       *ServiceAResponse
+	expiration time.Time
+}
 
 type ServiceAImpl struct {
 	httpClient httpclient.HttpClient
 	baseUrl    string
+	cache      serviceACache
 }
 
 type ServiceAResponse struct {
@@ -19,22 +29,34 @@ type ServiceAResponse struct {
 	Symbol  string          `json:"symbol"`
 }
 
-func NewServiceAImpl(httpClient httpclient.HttpClient, baseUrl string) ServiceAImpl {
-	return ServiceAImpl{
+func NewServiceAImpl(httpClient httpclient.HttpClient, baseUrl string) *ServiceAImpl {
+	return &ServiceAImpl{
 		httpClient: httpClient,
 		baseUrl:    baseUrl,
 	}
 }
 
-func (s ServiceAImpl) Query(ctx context.Context, currency domain.Currency) (*domain.Price, error) {
+func (s *ServiceAImpl) Query(ctx context.Context, currency domain.Currency) (*domain.Price, error) {
 	url := fmt.Sprintf("%s/cotacao?moeda=%s", s.baseUrl, currency)
 
 	var response ServiceAResponse
 
-	err := s.httpClient.Get(ctx, url, &response)
+	if s.cache.data != nil && s.cache.expiration.After(time.Now()) {
+		response = *s.cache.data
+		log.Debug().Str("service", "service-a").Msg("using cached response")
+	} else {
+		s.cache.Mutex.Lock()
+		defer s.cache.Mutex.Unlock()
+		log.Debug().Str("service", "service-a").Msg("querying service")
+		err := s.httpClient.Get(ctx, url, &response)
 
-	if err != nil {
-		return nil, err
+		if err != nil {
+			log.Error().Err(err).Str("service", "service-a").Msg("error querying service")
+			return nil, err
+		}
+
+		s.cache.data = &response
+		s.cache.expiration = time.Now().Add(CACHE_TIME)
 	}
 
 	return &domain.Price{

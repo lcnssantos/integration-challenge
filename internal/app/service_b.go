@@ -4,15 +4,23 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"sync"
+	"time"
 
 	"github.com/lcnssantos/integration-challenge/internal/domain"
 	"github.com/lcnssantos/integration-challenge/internal/infra/httpclient"
 	"github.com/rs/zerolog/log"
 )
 
+type serviceBCache struct {
+	sync.Mutex
+	data       *ServiceBResponse
+	expiration time.Time
+}
 type ServiceBImpl struct {
 	httpClient httpclient.HttpClient
 	baseUrl    string
+	cache      serviceBCache
 }
 
 type ServiceBResponse struct {
@@ -23,22 +31,35 @@ type ServiceBResponse struct {
 	} `json:"cotacao"`
 }
 
-func NewServiceBImpl(httpClient httpclient.HttpClient, baseUrl string) ServiceBImpl {
-	return ServiceBImpl{
+func NewServiceBImpl(httpClient httpclient.HttpClient, baseUrl string) *ServiceBImpl {
+	return &ServiceBImpl{
 		httpClient: httpClient,
 		baseUrl:    baseUrl,
 	}
 }
 
-func (s ServiceBImpl) Query(ctx context.Context, currency domain.Currency) (*domain.Price, error) {
+func (s *ServiceBImpl) Query(ctx context.Context, currency domain.Currency) (*domain.Price, error) {
 	url := fmt.Sprintf("%s/cotacao?curr=%s", s.baseUrl, currency)
 
 	var response ServiceBResponse
 
-	err := s.httpClient.Get(ctx, url, &response)
+	if s.cache.data != nil && s.cache.expiration.After(time.Now()) {
+		response = *s.cache.data
+		log.Debug().Str("service", "service-b").Msg("using cached response")
+	} else {
+		s.cache.Mutex.Lock()
+		defer s.cache.Mutex.Unlock()
 
-	if err != nil {
-		return nil, err
+		log.Debug().Str("service", "service-b").Msg("querying service")
+		err := s.httpClient.Get(ctx, url, &response)
+
+		if err != nil {
+			log.Error().Err(err).Str("service", "service-b").Msg("error querying service")
+			return nil, err
+		}
+
+		s.cache.data = &response
+		s.cache.expiration = time.Now().Add(CACHE_TIME)
 	}
 
 	value, err := strconv.Atoi(response.Cotacao.Valor)
