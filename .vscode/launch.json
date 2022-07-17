@@ -1,0 +1,18 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Integration Challenge",
+      "type": "go",
+      "request": "launch",
+      "mode": "debug",
+      "program": "${workspaceFolder}/cmd/main.go",
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "SERVICE_A_BASE_URL": "http://localhost:5000",
+        "SERVICE_B_BASE_URL": "http://localhost:5000",
+        "SERVICE_C_BASE_URL": "http://localhost:5000"
+      }
+    }
+  ]
+}
