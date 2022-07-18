@@ -12,7 +12,8 @@
         "SERVICE_A_BASE_URL": "http://localhost:5000/servico-a",
         "SERVICE_B_BASE_URL": "http://localhost:5000/servico-b",
         "SERVICE_C_BASE_URL": "http://localhost:5000/servico-c",
-        "MY_BASE_URL": "http://172.17.0.1:8080"
+        "MY_BASE_URL": "http://172.17.0.1:8080",
+        "GIN_MODE": "debug"
       }
     }
   ]

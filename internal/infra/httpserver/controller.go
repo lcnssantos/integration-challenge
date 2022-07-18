@@ -1,9 +1,12 @@
 package httpserver
 
 import (
+	"fmt"
+
 	"github.com/gin-gonic/gin"
 	"github.com/lcnssantos/integration-challenge/internal/app"
 	"github.com/lcnssantos/integration-challenge/internal/domain"
+	"github.com/lcnssantos/integration-challenge/internal/infra/cache"
 	"github.com/lcnssantos/integration-challenge/internal/infra/concurrency"
 	"github.com/rs/zerolog/log"
 )
@@ -11,12 +14,14 @@ import (
 type Controller struct {
 	strategies []app.Strategy
 	pubSub     *concurrency.PubSub[app.WebhookResponse]
+	cache      *cache.CacheProxy
 }
 
-func NewController(strategies []app.Strategy, pubSub *concurrency.PubSub[app.WebhookResponse]) Controller {
+func NewController(strategies []app.Strategy, pubSub *concurrency.PubSub[app.WebhookResponse], cache *cache.CacheProxy) Controller {
 	return Controller{
 		strategies: strategies,
 		pubSub:     pubSub,
+		cache:      cache,
 	}
 }
 
@@ -48,7 +53,9 @@ func (c *Controller) Query(ctx *gin.Context) {
 
 		tasksInputs[i] = concurrency.TaskInput{
 			Task: func() (interface{}, error) {
-				return strategy.Query(ctx, currency)
+				return c.cache.Proxy(func() (interface{}, error) {
+					return strategy.Query(ctx, currency)
+				}, fmt.Sprintf("%s-query", strategy.GetTag()))
 			},
 			Tag: strategy.GetTag(),
 		}

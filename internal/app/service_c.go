@@ -3,8 +3,6 @@ package app
 import (
 	"context"
 	"fmt"
-	"sync"
-	"time"
 
 	"github.com/lcnssantos/integration-challenge/internal/domain"
 	"github.com/lcnssantos/integration-challenge/internal/infra/concurrency"
@@ -12,17 +10,10 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type serviceCCache struct {
-	sync.Mutex
-	data       *WebhookResponse
-	expiration time.Time
-}
-
 type ServiceCImpl struct {
 	httpClient httpclient.HttpClient
 	baseUrl    string
 	myBaseUrl  string
-	cache      serviceCCache
 	pubSub     *concurrency.PubSub[WebhookResponse]
 }
 
@@ -60,36 +51,27 @@ func (s *ServiceCImpl) Query(ctx context.Context, currency domain.Currency) (*do
 
 	var msg WebhookResponse
 
-	if s.cache.data != nil && s.cache.expiration.After(time.Now()) {
-		log.Debug().Str("service", "service-c").Msg("using cached response")
-		msg = *s.cache.data
-	} else {
+	log.Debug().Str("service", "service-c").Msg("querying service")
 
-		log.Debug().Str("service", "service-c").Msg("querying service")
+	var response ServiceCResponse
 
-		var response ServiceCResponse
+	err := s.httpClient.Post(ctx, url, ServiceCRequest{
+		Type:     currency,
+		Callback: s.myBaseUrl + "/service-c/callback",
+	}, &response)
 
-		err := s.httpClient.Post(ctx, url, ServiceCRequest{
-			Type:     currency,
-			Callback: s.myBaseUrl + "/service-c/callback",
-		}, &response)
-
-		if err != nil {
-			log.Error().Err(err).Str("service", "service-c").Msg("error querying service")
-			return nil, err
-		}
-
-		ch := s.pubSub.Subscribe(response.CorrelationID)
-
-		msg = <-ch
-
-		s.pubSub.Unsubscribe(response.CorrelationID)
-
-		log.Debug().Interface("msg", msg).Str("service", "service-c").Msg("received message")
-
-		s.cache.data = &msg
-		s.cache.expiration = time.Now().Add(CACHE_TIME)
+	if err != nil {
+		log.Error().Err(err).Str("service", "service-c").Msg("error querying service")
+		return nil, err
 	}
+
+	ch := s.pubSub.Subscribe(response.CorrelationID)
+
+	msg = <-ch
+
+	s.pubSub.Unsubscribe(response.CorrelationID)
+
+	log.Debug().Interface("msg", msg).Str("service", "service-c").Msg("received message")
 
 	return &domain.Price{
 		Value:    msg.V / msg.F,

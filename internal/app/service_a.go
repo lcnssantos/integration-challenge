@@ -3,24 +3,15 @@ package app
 import (
 	"context"
 	"fmt"
-	"sync"
-	"time"
 
 	"github.com/lcnssantos/integration-challenge/internal/domain"
 	"github.com/lcnssantos/integration-challenge/internal/infra/httpclient"
 	"github.com/rs/zerolog/log"
 )
 
-type serviceACache struct {
-	sync.Mutex
-	data       *ServiceAResponse
-	expiration time.Time
-}
-
 type ServiceAImpl struct {
 	httpClient httpclient.HttpClient
 	baseUrl    string
-	cache      serviceACache
 }
 
 type ServiceAResponse struct {
@@ -45,22 +36,12 @@ func (s *ServiceAImpl) Query(ctx context.Context, currency domain.Currency) (*do
 
 	var response ServiceAResponse
 
-	if s.cache.data != nil && s.cache.expiration.After(time.Now()) {
-		response = *s.cache.data
-		log.Debug().Str("service", "service-a").Msg("using cached response")
-	} else {
-		s.cache.Mutex.Lock()
-		defer s.cache.Mutex.Unlock()
-		log.Debug().Str("service", "service-a").Msg("querying service")
-		err := s.httpClient.Get(ctx, url, &response)
+	log.Debug().Str("service", "service-a").Msg("querying service")
+	err := s.httpClient.Get(ctx, url, &response)
 
-		if err != nil {
-			log.Error().Err(err).Str("service", "service-a").Msg("error querying service")
-			return nil, err
-		}
-
-		s.cache.data = &response
-		s.cache.expiration = time.Now().Add(CACHE_TIME)
+	if err != nil {
+		log.Error().Err(err).Str("service", "service-a").Msg("error querying service")
+		return nil, err
 	}
 
 	return &domain.Price{

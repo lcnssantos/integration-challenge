@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/lcnssantos/integration-challenge/internal/app"
+	"github.com/lcnssantos/integration-challenge/internal/infra/cache"
 	"github.com/lcnssantos/integration-challenge/internal/infra/concurrency"
 	"github.com/lcnssantos/integration-challenge/internal/infra/configuration"
 	"github.com/lcnssantos/integration-challenge/internal/infra/httpclient"
@@ -33,7 +34,13 @@ func main() {
 		pubSub,
 	)
 
-	controller := httpserver.NewController([]app.Strategy{serviceA, serviceB, serviceC}, pubSub)
+	cacheProxy := cache.NewCache().SetDefaultExpirationTime(app.CACHE_TIME)
+
+	controller := httpserver.NewController(
+		[]app.Strategy{serviceA, serviceB, serviceC},
+		pubSub,
+		cacheProxy,
+	)
 
 	server := httpserver.NewServer(8080, controller)
 	server.Listen()
