@@ -55,7 +55,7 @@ func (c *Controller) Query(ctx *gin.Context) {
 			Task: func() (interface{}, error) {
 				return c.cache.Proxy(func() (interface{}, error) {
 					return strategy.Query(ctx, currency)
-				}, fmt.Sprintf("%s-query", strategy.GetTag()))
+				}, fmt.Sprintf("%s-query-%s", strategy.GetTag(), currency))
 			},
 			Tag: strategy.GetTag(),
 		}
